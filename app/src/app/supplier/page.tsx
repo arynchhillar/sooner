@@ -120,7 +120,7 @@ export default function SupplierPage() {
   const closed = payables.filter((p) => p.status !== 'open');
 
   return (
-    <div className="stack-lg">
+    <div className="stack-lg desk desk-supplier">
       <div className="stack" style={{ gap: 6 }}>
         <h1 className="title">Supplier desk</h1>
         <p className="muted">

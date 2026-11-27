@@ -55,7 +55,7 @@ export default function RecordPage({ params }: { params: { buyer: string } }) {
   const share = paid === 0 ? null : Math.round((notLate / paid) * 100);
 
   return (
-    <div className="stack-lg">
+    <div className="stack-lg desk desk-record">
       <div className="stack" style={{ gap: 6 }}>
         <h1 className="title">How this buyer pays</h1>
         <p className="muted">

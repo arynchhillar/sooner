@@ -3,8 +3,9 @@
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram } from '@solana/web3.js';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Addr } from '@/components/Bits';
+import { HeroField, Reveal } from '@/components/Motion';
 import { Slope } from '@/components/Slope';
 import { DEFAULT_FEE_BPS } from '@/lib/config';
 import { MIN_FEE_BALANCE, requestDevnetSol } from '@/lib/demo';
@@ -36,6 +37,9 @@ function Quote() {
   const discount = discountFor(amount, rateBps, (tenorDays - day) * 86_400);
   const fee = feeFor(discount, DEFAULT_FEE_BPS);
   const start = now ?? 0;
+  // 0 on the day of approval, 1 on the due date. The payout figure fills out
+  // as the supplier waits and the discount figure thins away.
+  const waited = day / tenorDays;
 
   return (
     <section className="instrument" aria-labelledby="quote-title">
@@ -103,21 +107,36 @@ function Quote() {
           max={tenorDays}
           value={day}
           onChange={(e) => setTakeDay(Number(e.target.value))}
-          style={{ width: '100%', accentColor: 'var(--blue)' }}
+          className="day"
+          style={{ '--p': `${waited * 100}%` } as CSSProperties}
         />
       </div>
 
       <div className="quote-lines">
         <div className="hero-line">
           <span>The supplier takes</span>
-          <span className="num">{money(amount - discount)}</span>
+          <span
+            className="num morph"
+            style={{
+              fontStretch: `${Math.round(74 + waited * 46)}%`,
+              fontWeight: Math.round(600 + waited * 180),
+              color: waited >= 1 ? 'var(--green)' : undefined,
+            }}
+          >
+            {money(amount - discount)}
+          </span>
         </div>
         <div>
           <span>
             The buyer earns as a discount, for paying {tenorDays - day} {tenorDays - day === 1 ? 'day' : 'days'}{' '}
             early
           </span>
-          <span className="num">{money(discount)}</span>
+          <span
+            className="num morph discount"
+            style={{ fontStretch: `${Math.round(104 - waited * 42)}%`, fontWeight: Math.round(680 - waited * 240) }}
+          >
+            {money(discount)}
+          </span>
         </div>
         <div>
           <span className="muted">Protocol fee, taken out of that discount ({percent(DEFAULT_FEE_BPS)})</span>
@@ -220,10 +239,10 @@ function DemoStarter() {
     <div className="stack">
       {!started && (
         <div className="row">
-          <button type="button" className="btn primary big" onClick={run} disabled={running}>
+          <button type="button" className="btn primary big cta" onClick={run} disabled={running}>
             Start the demo
           </button>
-          <span className="muted small">No wallet or sign-up needed. Test money on Solana devnet.</span>
+          <span className="small hero-note">No wallet or sign-up needed. Test money on Solana devnet.</span>
         </div>
       )}
       {started && (
@@ -310,73 +329,126 @@ function RecordLookup() {
   );
 }
 
+/** The running example used across the page: 1,000.00 due in 45 days at 12% a year. */
+const EXAMPLE_AMOUNT = 1_000_000_000n;
+const EXAMPLE_DISCOUNT = discountFor(EXAMPLE_AMOUNT, 1200, 45 * 86_400);
+const EXAMPLE_FEE = feeFor(EXAMPLE_DISCOUNT, DEFAULT_FEE_BPS);
+
+const lineDelay = (index: number) => ({ '--i': index }) as CSSProperties;
+const stepStyle = (index: number, colour: string) => ({ '--i': index, '--c': colour }) as CSSProperties;
+
 export default function HomePage() {
   const session = useSession();
   const signedIn = session.ready && session.address !== null;
 
   return (
     <div className="stack-lg">
-      <div className="home">
-        <div className="stack">
-          <h1 className="display">Get paid before the due date.</h1>
-          <p className="lede">
-            A buyer approves your invoice on Solana and funds a vault. From that second you can take the money.
-            The earlier you take it, the bigger the discount the buyer keeps. Wait for the due date and you get
-            all of it.
-          </p>
-          <div style={{ paddingTop: 8 }}>
-            {session.mode === 'wallet' && signedIn ? (
-              <div className="row">
-                <Link className="btn primary big" href="/buyer">
-                  Open the buyer desk
-                </Link>
-                <Link className="btn big" href="/supplier">
-                  Open the supplier desk
-                </Link>
-              </div>
-            ) : (
-              <DemoStarter />
-            )}
+      <section className="hero" aria-labelledby="hero-title">
+        <HeroField />
+        <div className="home">
+          <div className="stack hero-copy">
+            <h1 className="display kinetic" id="hero-title">
+              <span className="k-line" style={lineDelay(0)}>
+                Get paid
+              </span>{' '}
+              <span className="k-line breathe" style={lineDelay(1)}>
+                before the
+              </span>{' '}
+              <span className="k-line mark" style={lineDelay(2)}>
+                due date.
+              </span>
+            </h1>
+            <p className="lede">
+              A buyer approves your invoice on Solana and funds a vault. From that second you can take the
+              money. The earlier you take it, the bigger the discount the buyer keeps. Wait for the due date and
+              you get all of it.
+            </p>
+            <div className="hero-cta">
+              {session.mode === 'wallet' && signedIn ? (
+                <div className="row">
+                  <Link className="btn primary big cta" href="/buyer">
+                    Open the buyer desk
+                  </Link>
+                  <Link className="btn big cta-ghost" href="/supplier">
+                    Open the supplier desk
+                  </Link>
+                </div>
+              ) : (
+                <DemoStarter />
+              )}
+            </div>
           </div>
+          <Quote />
         </div>
-        <Quote />
-      </div>
+      </section>
 
       <section aria-labelledby="how-title" className="stack">
-        <h2 className="title" id="how-title">
+        <Reveal as="h2" className="title" id="how-title">
           How one invoice moves
-        </h2>
-        <ol className="steps">
-          <li>
+        </Reveal>
+        <Reveal as="ol" className="steps">
+          <li style={stepStyle(0, 'var(--blue)')}>
             <b>The buyer opens a pool</b>
             <span className="muted">
               Cash goes into a vault that only the program can pay from. The buyer sets a yearly rate.
             </span>
           </li>
-          <li>
+          <li style={stepStyle(1, 'var(--sun)')}>
             <b>The buyer approves an invoice</b>
             <span className="muted">
               Supplier, amount and due date go on-chain. The rate is locked for that invoice.
             </span>
           </li>
-          <li>
+          <li style={stepStyle(2, 'var(--green)')}>
             <b>The supplier takes the money</b>
             <span className="muted">
               Any second before the due date, at that second&apos;s price. One transaction, paid from the vault.
             </span>
           </li>
-          <li>
+          <li style={stepStyle(3, 'var(--violet)')}>
             <b>Anyone can check the record</b>
             <span className="muted">
               Every payment adds to the buyer&apos;s public record: early, on time or late.
             </span>
           </li>
-        </ol>
+        </Reveal>
       </section>
 
-      <section className="sheet">
-        <RecordLookup />
+      <section aria-labelledby="sides-title" className="stack">
+        <Reveal as="h2" className="title" id="sides-title">
+          What each side gets
+        </Reveal>
+        <div className="sides">
+          <Reveal as="article" className="side supplier" index={0}>
+            <h3 className="heading">Suppliers: cash on the day you choose</h3>
+            <p className="big num">{money(EXAMPLE_AMOUNT - EXAMPLE_DISCOUNT)}</p>
+            <p className="small">today, on a 1,000.00 invoice that is due in 45 days</p>
+            <p>
+              No lender and no application. The price is on screen before you press, and it only improves as the
+              due date gets closer.
+            </p>
+            <Link className="btn" href="/supplier">
+              Open the supplier desk
+            </Link>
+          </Reveal>
+          <Reveal as="article" className="side buyer" index={1}>
+            <h3 className="heading">Buyers: a return on money that was sitting still</h3>
+            <p className="big num">{money(EXAMPLE_DISCOUNT - EXAMPLE_FEE)}</p>
+            <p className="small">kept on that same invoice for paying 45 days early, after the protocol fee</p>
+            <p>
+              You approve invoices you already owe and set the yearly rate. If the supplier waits, you pay the
+              full amount on the due date as usual.
+            </p>
+            <Link className="btn" href="/buyer">
+              Open the buyer desk
+            </Link>
+          </Reveal>
+        </div>
       </section>
+
+      <Reveal as="section" className="sheet lookup">
+        <RecordLookup />
+      </Reveal>
     </div>
   );
 }

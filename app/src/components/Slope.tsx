@@ -47,15 +47,24 @@ export function Slope({ amount, rateBps, approvedAt, dueAt, at, atLabel = 'Today
         role="img"
         aria-label={`The payout rises in a straight line from ${money(atApproval)} at approval to ${money(amount)} on the due date.`}
       >
-        <polygon points={`0,${top} ${width},${top} 0,${bottom}`} fill="var(--sun-wash)" />
+        <polygon className="slope-wedge" points={`0,${top} ${width},${top} 0,${bottom}`} fill="var(--sun-wash)" />
         <line x1={0} y1={top} x2={width} y2={top} stroke="var(--ink-3)" strokeDasharray="3 5" />
-        <line x1={0} y1={bottom} x2={width} y2={top} stroke="var(--sun)" strokeWidth={3} strokeLinecap="round" />
+        <path
+          className="slope-line"
+          d={`M0,${bottom} L${width},${top}`}
+          pathLength={1}
+          fill="none"
+          stroke="var(--sun)"
+          strokeWidth={3}
+          strokeLinecap="round"
+        />
         <line x1={0} y1={floor} x2={width} y2={floor} stroke="var(--ink)" strokeWidth={1.5} />
         {at !== null && (
-          <>
-            <line x1={x} y1={y} x2={x} y2={floor} stroke={colour} strokeWidth={1.5} strokeDasharray="2 4" />
-            <circle cx={x} cy={y} r={6.5} fill={colour} stroke="#fff" strokeWidth={2.5} />
-          </>
+          <g className="slope-marker" style={{ transform: `translate(${x}px, ${y}px)` }}>
+            <line x1={0} y1={0} x2={0} y2={floor - y} stroke={colour} strokeWidth={1.5} strokeDasharray="2 4" />
+            {!settled && <circle className="slope-pulse" r={6.5} fill="none" stroke={colour} strokeWidth={2} />}
+            <circle r={6.5} fill={colour} stroke="#fff" strokeWidth={2.5} />
+          </g>
         )}
       </svg>
       <div className="ends">

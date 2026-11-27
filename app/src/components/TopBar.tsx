@@ -68,8 +68,8 @@ export function TopBar() {
   }, [menuOpen]);
 
   const links = [
-    { href: '/buyer', label: 'Buyer desk' },
-    { href: '/supplier', label: 'Supplier desk' },
+    { href: '/buyer', label: 'Buyer desk', desk: 'buyer' },
+    { href: '/supplier', label: 'Supplier desk', desk: 'supplier' },
   ];
 
   const pickRole = (role: 'buyer' | 'supplier') => {
@@ -83,11 +83,19 @@ export function TopBar() {
       <div className="wrap">
         <Link className="brand" href="/">
           <Mark />
-          Sooner
+          <span className="brand-word" data-text="Sooner">
+            Sooner
+          </span>
         </Link>
         <nav className="nav" aria-label="Main">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} aria-current={pathname === link.href ? 'page' : undefined}>
+            <Link
+              key={link.href}
+              href={link.href}
+              data-text={link.label}
+              data-desk={link.desk}
+              aria-current={pathname === link.href ? 'page' : undefined}
+            >
               {link.label}
             </Link>
           ))}
@@ -98,11 +106,17 @@ export function TopBar() {
             <>
               <span className="small muted">Demo wallet</span>
               <div className="seg" role="group" aria-label="Which demo wallet signs">
-                <button type="button" aria-pressed={session.role === 'buyer'} onClick={() => pickRole('buyer')}>
+                <button
+                  type="button"
+                  data-role="buyer"
+                  aria-pressed={session.role === 'buyer'}
+                  onClick={() => pickRole('buyer')}
+                >
                   Buyer
                 </button>
                 <button
                   type="button"
+                  data-role="supplier"
                   aria-pressed={session.role === 'supplier'}
                   onClick={() => pickRole('supplier')}
                 >

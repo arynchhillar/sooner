@@ -77,7 +77,7 @@ export default function PayablePage({ params }: { params: { address: string } })
   };
 
   return (
-    <div className="stack-lg">
+    <div className="stack-lg desk desk-invoice">
       <div className="spread">
         <div className="stack" style={{ gap: 6 }}>
           <h1 className="title">Invoice {payable.reference}</h1>
@@ -149,7 +149,7 @@ export default function PayablePage({ params }: { params: { address: string } })
               <div className="row">
                 <button
                   type="button"
-                  className="btn primary big"
+                  className="btn primary big take"
                   onClick={take}
                   disabled={session.busy !== null || payout === null || short}
                 >

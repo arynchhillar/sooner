@@ -26,7 +26,7 @@ export default function SetupPage() {
     void navigator.clipboard?.writeText(text).then(() => session.notify('info', `${what} copied`));
 
   return (
-    <div className="stack-lg">
+    <div className="stack-lg desk">
       <div className="stack" style={{ gap: 6 }}>
         <h1 className="title">Deployment setup</h1>
         <p className="muted">One-time tasks for whoever deployed the program. Nothing here is needed to use the app.</p>

@@ -51,7 +51,9 @@ export function LiveAmount({ value, compact }: { value: bigint | null; compact?:
     <div className={`live${compact ? ' compact' : ''}`} aria-label={`${money(value)} test dollars`}>
       <span aria-hidden>
         {main}
-        <span className="fine">{fine}</span>
+        <span className="fine" key={fine}>
+          {fine}
+        </span>
       </span>
       {!compact && (
         <span className="unit" aria-hidden>

@@ -429,7 +429,7 @@ export default function BuyerPage() {
   if (!address) return <NeedSigner what="use the buyer desk" />;
 
   return (
-    <div className="stack-lg">
+    <div className="stack-lg desk desk-buyer">
       <div className="spread">
         <div className="stack" style={{ gap: 6 }}>
           <h1 className="title">Buyer desk</h1>
