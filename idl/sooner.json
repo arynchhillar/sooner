@@ -1,0 +1,854 @@
+{
+  "version": "0.1.0",
+  "name": "sooner",
+  "instructions": [
+    {
+      "name": "initialize",
+      "docs": [
+        "One-time setup: stores the protocol fee and creates the devnet test mint."
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "demoMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "feeBps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "setConfig",
+      "docs": [
+        "Admin: change the protocol fee or the wallet that receives it."
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "feeBps",
+          "type": "u16"
+        },
+        {
+          "name": "treasury",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "demoFaucet",
+      "docs": [
+        "Devnet only: mints test dollars so anyone can try the app."
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "demoMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "recipientToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "openPool",
+      "docs": [
+        "A buyer opens an early-payment pool for one token and sets its yearly rate."
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "rateBps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "setRate",
+      "docs": [
+        "Changes the rate for invoices approved from now on. Invoices already",
+        "approved keep the rate they were approved at."
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "rateBps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "fund",
+      "docs": [
+        "Adds cash to the pool's vault."
+      ],
+      "accounts": [
+        {
+          "name": "funder",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "funderToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "docs": [
+        "The buyer takes idle cash back out of the vault."
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "destination",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "approvePayable",
+      "docs": [
+        "The buyer approves an invoice: a public commitment to pay `amount` to",
+        "`supplier` by `due_at`. The pool's current rate is locked in."
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "supplier",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payable",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "invoiceId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "dueAt",
+          "type": "i64"
+        },
+        {
+          "name": "reference",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "claim",
+      "docs": [
+        "The supplier collects from the vault. Before the due date the payout is",
+        "the amount minus the time-based discount; from the due date on it is the",
+        "full amount."
+      ],
+      "accounts": [
+        {
+          "name": "supplier",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payable",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "supplierToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle",
+      "docs": [
+        "The buyer pays an open invoice in full from the vault, at any time."
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payable",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "supplierToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "voidPayable",
+      "docs": [
+        "The supplier releases the buyer from an open invoice (for example after",
+        "a credit note). Only the party owed the money can do this."
+      ],
+      "accounts": [
+        {
+          "name": "supplier",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payable",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "docs": [
+        "Protocol settings. One per deployment."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "publicKey"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "Wallet whose token accounts receive the protocol fee."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "feeBps",
+            "docs": [
+              "Share of each discount kept by the protocol, in basis points."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "demoMint",
+            "docs": [
+              "Devnet test dollar mint."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "docs": [
+        "A buyer's early-payment pool for one token, and its public payment record."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "buyer",
+            "type": "publicKey"
+          },
+          {
+            "name": "mint",
+            "type": "publicKey"
+          },
+          {
+            "name": "vault",
+            "type": "publicKey"
+          },
+          {
+            "name": "rateBps",
+            "docs": [
+              "Yearly discount rate applied to new approvals, in basis points."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "outstanding",
+            "docs": [
+              "Approved and not yet paid."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalApproved",
+            "type": "u64"
+          },
+          {
+            "name": "totalPaid",
+            "docs": [
+              "Cash actually paid to suppliers."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalDiscount",
+            "docs": [
+              "Discounts earned on early payments, before the protocol fee."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalFees",
+            "type": "u64"
+          },
+          {
+            "name": "countApproved",
+            "type": "u32"
+          },
+          {
+            "name": "countEarly",
+            "type": "u32"
+          },
+          {
+            "name": "countOnTime",
+            "type": "u32"
+          },
+          {
+            "name": "countLate",
+            "type": "u32"
+          },
+          {
+            "name": "countVoided",
+            "type": "u32"
+          },
+          {
+            "name": "secondsEarly",
+            "docs": [
+              "Sum of seconds paid before the due date, across all payments."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "secondsLate",
+            "docs": [
+              "Sum of seconds paid after the due date, across all payments."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Payable",
+      "docs": [
+        "One approved invoice."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "publicKey"
+          },
+          {
+            "name": "supplier",
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "rateBps",
+            "docs": [
+              "The pool's rate at approval. Later rate changes do not touch it."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "approvedAt",
+            "type": "i64"
+          },
+          {
+            "name": "dueAt",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": "Status"
+            }
+          },
+          {
+            "name": "paidAt",
+            "type": "i64"
+          },
+          {
+            "name": "paidAmount",
+            "type": "u64"
+          },
+          {
+            "name": "discount",
+            "type": "u64"
+          },
+          {
+            "name": "invoiceId",
+            "docs": [
+              "SHA-256 of the invoice file or number. Also part of the address."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "reference",
+            "docs": [
+              "Short human-readable label, UTF-8, zero padded."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "Status",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "PaidEarly"
+          },
+          {
+            "name": "PaidOnTime"
+          },
+          {
+            "name": "PaidLate"
+          },
+          {
+            "name": "Voided"
+          }
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "PayableApproved",
+      "fields": [
+        {
+          "name": "pool",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "payable",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "buyer",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "supplier",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "dueAt",
+          "type": "i64",
+          "index": false
+        },
+        {
+          "name": "rateBps",
+          "type": "u16",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "PayablePaid",
+      "fields": [
+        {
+          "name": "pool",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "payable",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "supplier",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "paidAmount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "discount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "fee",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "status",
+          "type": {
+            "defined": "Status"
+          },
+          "index": false
+        },
+        {
+          "name": "paidAt",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "PayableVoided",
+      "fields": [
+        {
+          "name": "pool",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "payable",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "RateTooHigh",
+      "msg": "Rate is above the maximum of 50% a year"
+    },
+    {
+      "code": 6001,
+      "name": "FeeTooHigh",
+      "msg": "Protocol fee is above the maximum of 20% of the discount"
+    },
+    {
+      "code": 6002,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6003,
+      "name": "DueDateInPast",
+      "msg": "Due date must be in the future"
+    },
+    {
+      "code": 6004,
+      "name": "TenorTooLong",
+      "msg": "Due date is more than 366 days away"
+    },
+    {
+      "code": 6005,
+      "name": "SelfDealing",
+      "msg": "Buyer and supplier must be different wallets"
+    },
+    {
+      "code": 6006,
+      "name": "NotOpen",
+      "msg": "This invoice is no longer open"
+    },
+    {
+      "code": 6007,
+      "name": "PoolShort",
+      "msg": "The pool vault does not hold enough to pay this"
+    },
+    {
+      "code": 6008,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    }
+  ]
+}
