@@ -8,6 +8,8 @@ type RevealProps = {
   id?: string;
   /** Position in a group, used to stagger the entrance. */
   index?: number;
+  /** Sets the --c colour variable for styles that tint by it. */
+  colour?: string;
   children: ReactNode;
 };
 
@@ -15,35 +17,49 @@ type RevealProps = {
  * Marks an element "out" until it scrolls into view, then "in". The styles
  * for both states live in globals.css. Anything already on screen when the
  * page loads is left alone, and so is everything when the visitor prefers
- * reduced motion, so content is never hidden without a way back.
+ * reduced motion. An element the visitor jumps straight past, or the end of
+ * the page being reached, also counts as seen, so nothing can stay hidden.
  */
-export function Reveal({ as = 'div', className, id, index = 0, children }: RevealProps) {
+export function Reveal({ as = 'div', className, id, index = 0, colour, children }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);
   const [state, setState] = useState<'out' | 'in' | undefined>(undefined);
 
   useEffect(() => {
     const element = ref.current;
-    if (!element || typeof IntersectionObserver === 'undefined') return;
+    if (!element || window.innerHeight === 0) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (element.getBoundingClientRect().top < window.innerHeight * 0.92) return;
 
+    const seen = () => {
+      const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
+      return atEnd || element.getBoundingClientRect().top < window.innerHeight * 0.9;
+    };
+    if (seen()) return;
     setState('out');
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setState('in');
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '0px 0px -10% 0px' },
-    );
-    observer.observe(element);
-    return () => observer.disconnect();
+
+    let frame = 0;
+    const stop = () => {
+      window.removeEventListener('scroll', onMove);
+      window.removeEventListener('resize', onMove);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+    const check = () => {
+      frame = 0;
+      if (seen()) {
+        setState('in');
+        stop();
+      }
+    };
+    function onMove() {
+      if (!frame) frame = window.requestAnimationFrame(check);
+    }
+    window.addEventListener('scroll', onMove, { passive: true });
+    window.addEventListener('resize', onMove);
+    return stop;
   }, []);
 
   return createElement(
     as,
-    { ref, id, className, 'data-reveal': state, style: { '--i': index } as CSSProperties },
+    { ref, id, className, 'data-reveal': state, style: { '--i': index, ...(colour ? { '--c': colour } : {}) } as CSSProperties },
     children,
   );
 }

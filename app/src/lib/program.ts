@@ -217,6 +217,36 @@ export async function fetchPools(program: Program, addresses: PublicKey[]): Prom
   return out;
 }
 
+export type Totals = {
+  pools: number;
+  approved: number;
+  early: number;
+  paid: bigint;
+  /** Discounts buyers kept, after the protocol fee. */
+  kept: bigint;
+};
+
+/** Layout of a Pool account: 8-byte tag, then buyer (32), then mint (32). */
+const POOL_MINT_OFFSET = 40;
+
+/**
+ * Adds up every pool that uses one mint, for the live figures on the home
+ * page. Amounts in different mints cannot be added together, so the caller
+ * picks the mint (the devnet test dollar).
+ */
+export async function fetchTotals(program: Program, mint: PublicKey): Promise<Totals> {
+  const rows = await program.account.pool.all([{ memcmp: { offset: POOL_MINT_OFFSET, bytes: mint.toBase58() } }]);
+  const totals: Totals = { pools: rows.length, approved: 0, early: 0, paid: 0n, kept: 0n };
+  for (const row of rows) {
+    const pool = toPool(row.publicKey, row.account, 0n);
+    totals.approved += pool.countApproved;
+    totals.early += pool.countEarly;
+    totals.paid += pool.totalPaid;
+    totals.kept += pool.totalDiscount - pool.totalFees;
+  }
+  return totals;
+}
+
 export async function fetchPayable(program: Program, address: PublicKey): Promise<PayableView | null> {
   const raw = await program.account.payable.fetchNullable(address);
   return raw ? toPayable(address, raw) : null;

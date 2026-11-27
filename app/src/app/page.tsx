@@ -7,12 +7,12 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { Addr } from '@/components/Bits';
 import { HeroField, Reveal } from '@/components/Motion';
 import { Slope } from '@/components/Slope';
-import { DEFAULT_FEE_BPS } from '@/lib/config';
+import { DEFAULT_FEE_BPS, PROGRAM_ID_STRING, explorerAddress } from '@/lib/config';
 import { MIN_FEE_BALANCE, requestDevnetSol } from '@/lib/demo';
-import { money, parseMoney, percent } from '@/lib/format';
+import { money, parseMoney, percent, shortKey } from '@/lib/format';
 import { discountFor, feeFor } from '@/lib/math';
-import { faucetIxs, fetchConfig, initializeIx, tokenAccountOf, tokenBalance } from '@/lib/program';
-import { useNow, useSession } from '@/lib/session';
+import { faucetIxs, fetchConfig, fetchTotals, initializeIx, tokenAccountOf, tokenBalance } from '@/lib/program';
+import { useLoad, useNow, useSession } from '@/lib/session';
 
 type StepState = 'todo' | 'doing' | 'done' | 'failed';
 const STEP_LABELS = [
@@ -329,6 +329,122 @@ function RecordLookup() {
   );
 }
 
+/** What this deployment has done so far, read from the program's own accounts. */
+function LiveNumbers() {
+  const { program, version } = useSession();
+  const totals = useLoad(
+    async () => {
+      const config = await fetchConfig(program);
+      return config ? fetchTotals(program, config.demoMint) : null;
+    },
+    [version],
+    30_000,
+  );
+  const data = totals.data;
+  // Stay quiet while loading or if devnet cannot be reached: the rest of the page does not depend on this.
+  if (!data) return null;
+
+  return (
+    <section aria-labelledby="live-title" className="stack live-numbers">
+      <Reveal as="h2" className="title" id="live-title">
+        <span className="live-dot" aria-hidden /> Live on Solana devnet
+      </Reveal>
+      {data.approved === 0 ? (
+        <p className="notice info">
+          Nothing has been approved on this deployment yet. Start the demo at the top of the page to make the
+          first invoice.
+        </p>
+      ) : (
+        <dl className="figures">
+          <div>
+            <dt>Invoices approved</dt>
+            <dd className="num">{data.approved}</dd>
+            <p className="small muted after">
+              across {data.pools} buyer {data.pools === 1 ? 'pool' : 'pools'}
+            </p>
+          </div>
+          <div>
+            <dt>Taken early by suppliers</dt>
+            <dd className="num">{data.early}</dd>
+            <p className="small muted after">before their due date</p>
+          </div>
+          <div>
+            <dt>Paid to suppliers</dt>
+            <dd className="num">{money(data.paid)}</dd>
+            <p className="small muted after">test dollars, straight from buyers&apos; vaults</p>
+          </div>
+          <div>
+            <dt>Discounts kept by buyers</dt>
+            <dd className="num">{money(data.kept)}</dd>
+            <p className="small muted after">after the protocol fee</p>
+          </div>
+        </dl>
+      )}
+      <p className="small muted">
+        These figures are read from the accounts of program{' '}
+        <a href={explorerAddress(PROGRAM_ID_STRING)} target="_blank" rel="noreferrer">
+          {shortKey(PROGRAM_ID_STRING, 6)}
+        </a>{' '}
+        and refresh every 30 seconds.
+      </p>
+    </section>
+  );
+}
+
+const COMPARISON = [
+  ['Who pays early', 'Outside lenders', 'The buyer who owes the money'],
+  ['Is the invoice real?', 'Needs an oracle or manual checks', 'The buyer approves its own invoice'],
+  ['If the buyer never pays', 'The lenders take the loss', 'Nobody lent anything'],
+  ['What the buyer gets', 'Nothing', 'A return on idle cash'],
+  ['Needed to get started', 'A funded lending pool', "Only the buyer's own cash"],
+];
+
+const REASONS = [
+  {
+    colour: 'var(--blue)',
+    title: 'Settled in about a second',
+    text: 'For a fraction of a cent. That is what makes a discount on a 200 dollar invoice worth taking, at 2 a.m. on a Sunday if need be.',
+  },
+  {
+    colour: 'var(--sun)',
+    title: 'One transaction does everything',
+    text: 'It prices the time, pays the supplier, pays the fee and updates the record together. Nobody holds the money in between.',
+  },
+  {
+    colour: 'var(--green)',
+    title: 'Vaults only the program can open',
+    text: "The buyer commits cash up front, so the supplier needs nobody's sign-off at the moment they take it.",
+  },
+  {
+    colour: 'var(--violet)',
+    title: 'A public record for free',
+    text: 'Every payment already sits on a public ledger, so how a buyer pays becomes something anyone can check.',
+  },
+];
+
+const QUESTIONS = [
+  {
+    q: 'Is this a loan?',
+    a: 'No. Nobody lends anything. The buyer pays its own invoice early, and the discount is the price of those days.',
+  },
+  {
+    q: 'What if the vault does not hold enough?',
+    a: 'The invoice stays approved, and the supplier can take the money as soon as the buyer adds cash. Both sides see the shortfall on the invoice page.',
+  },
+  {
+    q: 'What happens after the due date?',
+    a: "The discount has shrunk to zero by then, so the supplier takes the full amount. A payment made after the due date goes on the buyer's public record as late.",
+  },
+  {
+    q: 'How does Sooner earn money?',
+    a: 'It keeps 10% of each discount, taken in the same transaction that pays the supplier. If nobody takes money early, it earns nothing.',
+  },
+  {
+    q: 'Is the money real?',
+    a: 'Not yet. This runs on Solana devnet with test dollars, and the program has not been audited.',
+  },
+];
+
 /** The running example used across the page: 1,000.00 due in 45 days at 12% a year. */
 const EXAMPLE_AMOUNT = 1_000_000_000n;
 const EXAMPLE_DISCOUNT = discountFor(EXAMPLE_AMOUNT, 1200, 45 * 86_400);
@@ -446,9 +562,77 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section aria-labelledby="differs-title" className="stack">
+        <Reveal as="h2" className="title" id="differs-title">
+          How it differs from invoice factoring
+        </Reveal>
+        <p className="lede wide">
+          Most invoice projects on-chain are factoring: outside lenders buy the invoice. Sooner is funded by the
+          buyer, and that removes the three hard problems of factoring.
+        </p>
+        <Reveal className="compare-wrap">
+          <table className="compare">
+            <thead>
+              <tr>
+                <td />
+                <th scope="col">Invoice factoring on-chain</th>
+                <th scope="col" className="us">
+                  Sooner
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map(([topic, them, us], index) => (
+                <tr key={topic} style={lineDelay(index)}>
+                  <th scope="row">{topic}</th>
+                  <td data-label="Factoring">{them}</td>
+                  <td data-label="Sooner" className="us">
+                    {us}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Reveal>
+        <p className="muted">
+          It is not a loan. It is the buyer settling its own debt early, at a price both sides can see.
+        </p>
+      </section>
+
+      <section aria-labelledby="solana-title" className="stack">
+        <Reveal as="h2" className="title" id="solana-title">
+          Why it runs on Solana
+        </Reveal>
+        <div className="reasons">
+          {REASONS.map((reason, index) => (
+            <Reveal as="article" className="reason" index={index} colour={reason.colour} key={reason.title}>
+              <span className="reason-mark" aria-hidden />
+              <h3 className="heading">{reason.title}</h3>
+              <p className="muted">{reason.text}</p>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <LiveNumbers />
+
       <Reveal as="section" className="sheet lookup">
         <RecordLookup />
       </Reveal>
+
+      <section aria-labelledby="questions-title" className="stack">
+        <Reveal as="h2" className="title" id="questions-title">
+          Questions people ask
+        </Reveal>
+        <div className="questions">
+          {QUESTIONS.map((item) => (
+            <details className="qa" key={item.q}>
+              <summary>{item.q}</summary>
+              <p>{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
